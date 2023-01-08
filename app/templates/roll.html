@@ -1,0 +1,167 @@
+<div class="rollContent">
+	<style>
+		/* Chrome, Safari, Edge, Opera */
+		input::-webkit-outer-spin-button,
+		input::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+		}
+	
+		/* Firefox */
+		input[type=number] {
+		-moz-appearance: textfield;
+		}
+
+		#interface {
+			scrollbar-width: none; /* For Firefox */
+			-ms-overflow-style: none; /* For Internet Explorer and Edge */
+		}
+		
+		#interface::-webkit-scrollbar {
+			width: 0px; /* For Chrome, Safari, and Opera */
+		}
+	</style>
+	<script>
+		var room = "{{ room }}";
+		var name = "Anonymous";
+
+		var previous_dice = {}
+		var current_dice = {};
+	
+		$(document).ready(function()
+		{
+			setupRollSocket();
+	
+			$("#roll_btn").click(function() {
+				var face = $("#nbFace").val()
+				var dice = $("#nbDice").val()
+				var result = [];
+				for(var i = 0; i < dice; i++)
+				{
+					var roll = Math.floor(Math.random()*face)+1;
+					result.push(roll);
+				}
+
+				socket.emit('roll', { room: room, action: 'roll', result: result, name: name, dice: dice, face: face});
+			});
+	
+			$('#modalName').modal({backdrop: 'static', keyboard: false});
+
+			socket.on('roll', function (data, cb) {
+				switch(data['action'])
+				{
+					case 'roll':
+						displayRoll(data["result"], data["name"], data["dice"], data["face"]);
+						displayHistory();
+						break;
+				}
+			  });
+		
+		});
+	
+		async function setupRollSocket()
+		{
+			socket = io('', {
+				path: '/ws/socket.io'
+			});
+
+			// We join the room
+			socket.emit("join_room", room)
+		}
+
+		function displayRoll(result, name, dice, face)
+		{
+
+			// On récupère les résultats actuelle et on le met dans le tableau de l'historique
+			if(!$.isEmptyObject(current_dice))
+			{
+				var old_result = {result: current_dice['result'], dice: current_dice['dice'], face: current_dice['face'], total: current_dice['total'], name: current_dice['name']};
+				previous_dice = old_result;
+			}
+			var text_result = "";
+			var total = 0;
+			var result_value = [];
+			for(var i = 0; i < result.length; i++)
+			{
+				var text_roll = "<div class='rounded' style='background-color:white;border-color:white;width:30px;text-align:center;color:black;height:30px;width:30px;margin-right:5px;margin-top:5px;'>"+result[i]+"</div>";
+				text_result += text_roll+" ";
+				total += result[i];
+				result_value.push(result[i]);
+			}
+
+			$("#Info #name").html(name);
+			$("#Info #dice").html(dice+"D"+face);
+			$("#result").html(text_result.slice(0, -1));
+			$("#Total").html(total);
+
+			// On met à jour la valeur de la variable du dé actuelle et l'historique
+			current_dice = {result: result_value, dice: dice, face: face, total: total, name: name};
+		}
+
+		function displayHistory()
+		{
+				var text_result = "";
+				for(var j = 0; j < previous_dice['result'].length; j++)
+				{
+					var text_roll = "<div title='"+previous_dice['result'][j]+"' class='rounded' style='background-color:white;border-color:white;width:20px;text-align:center;color:black;height:20px;margin-right:5px;margin-top:5px;font-size:14px;'>"+previous_dice['result'][j]+"</div>";
+					text_result += text_roll+" ";
+				}
+				var line_history = `
+				<div class='rounded' style="display:flex;flex-direction:row;padding-left:0;padding-right:0;padding-top:0.5rem;padding-bottom:0.5rem;width:100%;height:3rem;background-color:#273c75;margin-top:5px">
+					<div style="display:flex;flex-direction:column;color:white;justify-content:center;width:30%;text-align:center;border-right:black solid 1px;font-size:10px"><div>`+previous_dice['name']+`</div><div>`+previous_dice['dice']+`D`+previous_dice['face']+`</div></div>
+					<div style="display:flex;flex-direction:row;color:white;justify-content:center;flex-wrap:wrap;margin-top:5px;width:60%;height:100%;overflow:auto">`+text_result+`</div>
+					<div style="display:flex;flex-direction:row;color:white;justify-content:center;margin-top:5px;width:30%;text-align:center;border-left:black solid 1px;font-size:1vw">`+previous_dice['total']+`</div>
+				</div>
+				`
+				$("#historyDice").append(line_history);
+
+				var objDiv = document.getElementById("historyDice");
+				objDiv.scrollTop = objDiv.scrollHeight;
+		}
+	</script>
+	<div id="interface" class="card" style="background-color:#192a56;height:25vh">
+		<div class="card-body">
+			<div style="text-align:center;display:flex;flex-direction:row;justify-content:center">
+				<div class="card" style="margin-right:10px;background-color:#487eb0">
+					<div class="card-body form-inline" style="padding:0.5rem;height:10vh">
+						<div style="width:100%;display:flex;flex-direction:row;justify-content:center">
+							<input class="form-control" type="number" id="nbDice" style="width:3rem;height:4vh" value="1">
+							<div style="color:white;font-size:3vh">D</div>
+							<input class="form-control" type="number" id="nbFace" style="width:3rem;height:4vh" value="6">
+						</div>
+						<div style="width:100%">
+							<button class="btn btn-sm btn-info" style="color:white;width:100%;background-color:#6ab04c;border-color:#6ab04c;height:3.5vh" id="roll_btn">Roll</button>
+						</div>
+					</div>
+				</div>
+				<div class="card" style="margin-right:10px;background-color:#487eb0;width:70%">
+					<div class="card-body form-inline" style="padding:0.5rem;overflow:auto;height:1rem" id="historyDice"></div>
+				</div>
+			</div>
+			<div class="card" style="margin-right:10px;background-color:#487eb0;margin-top:10px;">
+				<div class="card-body" style="display:flex;flex-direction:row;padding-left:0;padding-right:0;padding-top:0.5rem;padding-bottom:0.5rem;height:9vh">
+					<div id="Info" style="display:flex;flex-direction:column;color:white;justify-content:center;width:20%;text-align:center;border-right:black solid 1px">
+						<div id="name">-</div>
+						<div id="dice">-</div>
+					</div>
+					<div id="result" style="display:flex;flex-direction:row;color:white;justify-content:center;flex-wrap:wrap;margin-top:5px;width:60%;height:100%;overflow:auto"></div>
+					<div id="Total" style="display:flex;flex-direction:row;color:white;justify-content:center;margin-top:5px;width:20%;text-align:center;border-left:black solid 1px;font-size:2vw">-</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Modal -->
+	<!-- <div class="modal fade" id="modalName" tabindex="-1" role="dialog" aria-labelledby="modalNamepLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Choose a Name</h5>
+				  </div>
+				<div class="modal-body form-inline" style="display:flex;justify-content:center">
+					<input class="form-control" type="text" id="rollName" name="rollName" style="margin-right:10px;">
+					<button class="btn btn-sm btn-success" id="name_btn">Start</button>
+				</div>
+			</div>
+		</div>
+	</div> -->
+</div>

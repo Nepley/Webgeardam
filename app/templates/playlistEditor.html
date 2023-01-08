@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<script>
+	var idmax = 0;
+	$(document).ready(function() {
+		$('#videoList_body').sortable();
+		$("#add_video").click(function()
+		{
+			idmax++;
+			$('#videoList_body').append(`<tr id="row_`+idmax+`" style="background-color:#4b4b4b">
+				<td><input id="name_`+idmax+`" type="text" class="form-control name"></td>
+				<td><input id="url_`+idmax+`" type="text" class="form-control url"></td>
+				<td style="text-align:center"><button class="btn btn-sm btn-danger delete_btn">Delete</button></td>
+			</tr>`);
+		});
+
+		$(document).on("click", ".delete_btn", function()
+		{
+			$(this).closest('tr').remove();
+		})
+ 
+		$("#save").click(function()
+		{
+			var datas = [];
+			/*for(var i = 1; i <= idmax; i++)
+			{
+				var data = {};
+				data["name"] = $("#name_"+i).val();
+				data["url"] = $("#url_"+i).val();
+				datas.push(data);
+			}*/
+
+			$('#videoList_body  > tr').each(function()
+			{
+				var data = {};
+				data["name"] = $(this).find(".name").val();
+				data["url"] = $(this).find(".url").val();
+				datas.push(data);
+			});
+
+			var text_datas = JSON.stringify(datas, null, 4);
+			this.href = "data:text/plain;charset=UTF-8," + encodeURIComponent(text_datas);
+		})
+	
+		$("#load_playlist_file").click(function() {
+			var fileToLoad = document.getElementById("playlist_file").files[0];
+
+			var reader = new FileReader();
+			reader.readAsText(fileToLoad, "UTF-8");
+			reader.onload = function(evt)
+			{
+				var data = JSON.parse(evt.target.result);
+
+				// We reset the table
+				idmax = 0;
+				$('#videoList_body').html("");
+
+				// we (re-)create the table we the data
+				for(var i = 0; i < data.length; i++)
+				{
+					idmax++;
+					// Add a new row
+					$('#videoList_body').append(`<tr id="row_`+idmax+`" style="background-color:#4b4b4b">
+						<td><input id="name_`+idmax+`" type="text" class="form-control name"></td>
+						<td><input id="url_`+idmax+`" type="text" class="form-control url"></td>
+						<td style="text-align:center"><button class="btn btn-sm btn-danger delete_btn">Delete</button></td>
+					</tr>`);
+
+					// Fill the input
+					$("#name_"+idmax).val(data[i]["name"]);
+					$("#url_"+idmax).val(data[i]["url"]);
+				}
+			}
+			reader.onerror = function(evt)
+			{
+				console.log(evt);
+			}
+		});
+	});
+</script>
+<html>
+	<body style="background-color:#2f3640">
+		<nav style="height:5vh;background-color:#4b4b4b;display:flex;justify-content:space-between" class="navbar navbar-expand-md navbar-dark">
+			<a class="navbar-brand" href="#">SyncPlayer - Playlist Editor</a>
+			<div class="form-inline">
+				<input class="form-control" id="playlist_file" type="file">
+				<button class="btn btn-warning" id="load_playlist_file" style="margin-left:5px;color:white">Load</button>
+			</div>
+		</nav>
+		<div class="container-fluid">
+			<div class="row" style="display:flex;justify-content:center;margin-top:20px;">
+				<div class="col-md-8 offset-col-md-2 card" style="background-color:#7158e2;">
+					<div class="card-body" style="height:80vh;overflow:auto">
+						<table id="videoList" class="table table-bordered">
+							<thead>
+								<tr style="background-color:#c56cf0;color:white">
+									<th>Name</th>
+									<th>URL/Id</th>
+									<th>Action</th>
+								</tr>
+							</thead>
+							<tbody id="videoList_body"></tbody>
+						</table>
+					</div>
+				</div>
+				<div class="col-md-8 offset-col-md-2 card" style="background-color:#17c0eb;margin-top:5px">
+					<div class="card-body" style="text-align:center">
+						<button id="add_video" class="btn btn-sm btn-success">Add video</button>
+						<a id="save" href="#" download="playlist.json" class="btn btn-sm btn-warning" style="color:white">Save</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

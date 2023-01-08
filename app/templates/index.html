@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<script>
+	$( document ).ready(function() {
+		$("#room_name").keyup(function(){
+			$("#room_url").attr("href", "/syncPlayer/"+$(this).val());
+		});
+
+		$("#quote_id").keyup(function(){
+			$("#quote_url").attr("href", "/quote/manage/"+$(this).val());
+		});
+	});
+</script>
+<html>
+	<body>
+		<nav style="height:5vh;background-color:#40739e;display:flex;justify-content:space-between" class="navbar navbar-expand-md navbar-dark">
+			<a class="navbar-brand" href="#">Webgeardam</a>
+		</nav>
+		<div style="display:flex;justify-content:space-evenly;margin-top:5px;">
+			<div class="card" style="width: 25rem;">
+				<div class="card-body">
+					<h5 class="card-title">SyncPlayer</h5>
+					<input class="form-control" type="text" id="room_name" placeholder="Room Name">
+					<div style="text-align:center">
+						<a id="room_url" href="/syncPlayer/public" class="card-link">Go the syncPlayer room</a>
+						<a href="/syncPlayer/playereditor" class="card-link">Playlist Editor</a>
+					</div>
+				</div>
+			</div>
+			<div class="card" style="width: 25rem;">
+				<div class="card-body">
+					<h5 class="card-title">Quote</h5>
+					<div style="text-align:center">
+						<input class="form-control" type="text" id="quote_id" placeholder="Id">
+						<a id="quote_url" href="/quote/manage" class="card-link">Manage</a>
+						<a href="/quote" class="card-link">Random Quote</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-fQybjgWLrvvRgtW6bFlB7jaZrFsaBXjsOMm/tB9LTS58ONXgqbR9W8oWht/amnpF" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css" integrity="sha384-zCbKRCUGaJDkqS1kPbPd7TveP5iyJE0EjAuZQTgFLD2ylzuqKfdKlfG/eSrtxUkn" crossorigin="anonymous">
+</head>
+<script>
+	$( document ).ready(function() {
+		$('.toast').toast({ autohide: false })
+		$('.toast').toast("show")
+	});
+</script>
+<html>
+	<body>
+		<nav style="height:5vh;background-color:#40739e;display:flex;justify-content:space-between" class="navbar navbar-expand-md navbar-dark">
+			<a class="navbar-brand" href="/">Webgeardam</a>
+		</nav>
+		<!-- Return message -->
+		<div aria-live="polite" aria-atomic="true" style="position: relative;">
+			<div style="position: absolute; top: 0; right: 0;">
+				{%- for msg in msgs %}
+					<div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+						<div class="toast-header">
+							<strong class="mr-auto">
+								{%- if msg['type'] == "SUCCESS"  %}
+									Success
+								{%- elif msg['type'] == "ERROR" %}
+									ERROR
+								{%- else %}
+									Unknown
+								{%- endif %}
+							</strong>
+							<button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="toast-body">
+							{{ msg['message'] }}
+						</div>
+					</div>
+				{% endfor %}
+		  	</div>
+		</div>
+
+
+		<table class="table table-bordered">
+			<thead>
+				<tr>
+					<th>Author</th>
+					<th>Quote</th>
+					<th>Date</th>
+					<th>Action</th>
+				</tr>
+			</thead>
+			<tbody>
+				{%- for quote in quotes['quote_list'] %}
+					<tr>
+						<td>
+							<div id="">{{ quote['author'] }}</div>
+							<input type="text" name="author" value="{{ quote['author'] }}" style="display:none">
+						</td>
+						<td>
+							<div>{{ quote['quote'] }}</div>
+							<input type="text" name="quote" value="{{ quote['quote'] }}" style="display:none">
+						</td>
+						<td>
+							<div>{{ quote['date'] }}</div>
+							<input type="text" name="date" value="{{ quote['date'] }}" style="display:none">
+						</td>
+						<td>
+							<input type="hidden" name="id" value="{{ quote['id'] }}">
+							<button id="btn_save" class="btn btn-sm btn-warning" style="display:none">Save</button>
+							<button id="btn_modify" class="btn btn-sm btn-warning" style="color:white" data-toggle="modal" data-target="#modify_modal_{{ quote['id'] }}">Modify</button>
+							<button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#delete_modal_{{ quote['id'] }}">Delete</button>
+
+							<!-- Modification Modal -->
+							<div class="modal fade" id="modify_modal_{{ quote['id'] }}" tabindex="-1" aria-labelledby="modify_modal_{{ quote['id'] }}Label" aria-hidden="true">
+								<div class="modal-dialog">
+									<div class="modal-content">
+										<div class="modal-header">
+									  		<h5 class="modal-title">Edit</h5>
+									  		<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+												<span aria-hidden="true">&times;</span>
+											</button>
+										</div>
+										<div class="modal-body">
+											<form method="get">
+												<input class="form-control" type="text" name="authKey" placeholder="Auth key">
+												<br>
+												<input class="form-control" type="text" name="author" value="{{ quote['author'] }}">
+												<br>
+												<input class="form-control" type="text" name="quote" value="{{ quote['quote'] }}">
+												<br>
+												<input class="form-control" type="text" name="date" value="{{ quote['date'] }}">
+												<br>
+												<input type="hidden" value="{{ quote['id'] }}" name="id">
+												<input type="hidden" value="MODIFY_QUOTE" name="action">
+												<button class="btn btn-sm btn-success">Save</button>
+											</form>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Deletion Modal -->
+							<div class="modal fade" id="delete_modal_{{ quote['id'] }}" tabindex="-1" aria-labelledby="delete_modal_{{ quote['id'] }}Label" aria-hidden="true">
+								<div class="modal-dialog">
+									<div class="modal-content">
+										<div class="modal-header">
+									  		<h5 class="modal-title">Delete</h5>
+									  		<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+												<span aria-hidden="true">&times;</span>
+											</button>
+										</div>
+										<div class="modal-body">
+											<form method="get">
+												<input class="form-control" type="text" name="authKey" placeholder="Auth key">
+												<br>
+												<input type="hidden" value="{{ quotes['id'] }}" name="id_quote">
+												<input type="hidden" value="{{ quote['id'] }}" name="id">
+												<input type="hidden" value="DELETE_QUOTE" name="action">
+												<button class="btn btn-sm btn-danger">Delete</button>
+											</form>
+										</div>
+									</div>
+								</div>
+							</div>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</body>
+</html>
