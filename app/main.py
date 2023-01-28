@@ -6,6 +6,11 @@ from fastapi_socketio import SocketManager
 
 from .routers import syncPlayer
 from .routers import quotation
+from .routers import bingo
+
+from .Functions.bingo import *
+import requests
+import json
 
 app = FastAPI()
 socket_manager = SocketManager(app=app)
@@ -15,6 +20,7 @@ templates = Jinja2Templates(directory="app/templates/")
 
 app.include_router(syncPlayer.router)
 app.include_router(quotation.router)
+app.include_router(bingo.router)
 
 @app.get("/")
 async def root(request: Request):
@@ -38,3 +44,24 @@ async def handle_room_creation(sid, room, **kwargs):
 @app.sio.on('leave_room')
 async def handle_room_creation(sid, room, **kwargs):
     app.sio.leave_room(sid, room)
+
+## Socket - Bingo
+@app.sio.on('bingo')
+async def handle_bingo_event(sid, data, **kwargs):
+    if("room" in data):
+        if data["action"] == "GENERATE":
+            # We retrieve the configuration
+            with open("app/config.json") as  f:
+                config = json.load(f)
+            
+            # We retrieve the bingo data
+            bingoData = requests.get(config['url_api']+"bingo", params={"id": config["bingo"], "name": data['bingo']}).json()
+            bingoGrid = generateBingo(bingoData)
+
+            # We send the data
+            result = {"action": "GENERATE", "bingo": bingoGrid}
+            await app.sio.emit('bingo', result, room=data["room"])
+
+        elif data["action"] == "ADD_PLAYER" or data["action"] == "ASK_SYNC" or data["action"] == "SYNC" or data["action"] == "ADD_COLOR"  or data["action"] == "REMOVE_COLOR" or data["action"] == "DELETE_PLAYER":
+            # We just return the data
+            await app.sio.emit('bingo', data, room=data["room"])

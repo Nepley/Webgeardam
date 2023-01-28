@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<script>
+	let nbObj = {1: {{bingo["objectives"]["1"|string]|length}}, 2: {{bingo["objectives"]["2"|string]|length}}, 3: {{bingo["objectives"]["3"|string]|length}}, 4: {{bingo["objectives"]["4"|string]|length}}, 5: {{bingo["objectives"]["5"|string]|length}}};
+	let nbVariable = {{bingo["variables"]|length}};
+	let nbVariableRow = 2000;
+
+	function deleteRow(id)
+	{
+		$("#"+id).remove();
+	}
+
+	function addRow(level)
+	{
+		nbObj[level] += 1;
+		let html = '<tr id="'+level+'_'+nbObj[level]+'">';
+		html += '<td><input type="text" class="objective form-control" value=""></td>';
+		html += '<td>';
+		html += '<button class="btn btn-sm btn-danger" onClick="deleteRow(\''+level+'_'+nbObj[level]+'\')">Delete</button>';
+		html += '</td>';
+		html += '</tr>';
+		$('#table_'+level+' > tbody').append(html);
+	}
+
+	function addRowVariable(level)
+	{
+		nbVariableRow += 1;
+		let html = '<tr id="'+level+'_'+nbVariableRow+'">';
+		html += '<td><input class="variable form-control" type="text" value=""></td>';
+		html += '<td>';
+		html += '<button class="btn btn-sm btn-danger" onClick="deleteRow(\''+level+'_'+nbVariableRow+'\')">Delete</button>';
+		html += '</td>';
+		html += '</tr>';
+		$('#table_variables_'+level+' > tbody').append(html);
+	}
+
+	function addVariable()
+	{
+		nbVariable += 1;
+		let html = '<table id="table_variables_'+nbVariable+'" class="table table-bordered">';
+			html += '<thead>';
+				html += '<tr>';
+					html += '<th colspan="2"><input id="name" type="text" class="form-control" placeholder="Variable name"></th>';
+				html += '</tr>';
+			html += '</thead>';
+			html += '<tbody>';
+			html += '</tbody>';
+		html += '</table>';
+		html += '<button class="btn btn-sm btn-success" onclick=\'addRowVariable("'+nbVariable+'")\'>Add</button>'
+		$("#variablesList").append(html);
+	}
+
+	function save(name)
+	{
+		let data = {"name": name, "objectives": {"1": [], "2": [], "3": [], "4": [], "5": []}, "variables": {}};
+
+		///// Objectives /////
+		for(let i = 1; i < 6; i++)
+		{
+			$('#table_'+i+' > tbody  > tr').each(function()
+			{
+				obj = $(this).find(".objective").val();
+				if(obj != undefined)
+				{
+					data["objectives"][i].push(obj);
+				}
+			});
+		}
+
+		///// Variables /////
+		for(let i = 1; i <= nbVariable; i++)
+		{
+			name = $('#table_variables_'+i+' > thead > tr > th').find("#name").val();
+			data["variables"][name] = [];
+			$('#table_variables_'+i+' > tbody  > tr').each(function()
+			{
+				variable = $(this).find(".variable").val();
+				if(variable != undefined)
+				{
+					data["variables"][name].push(variable);
+				}
+			});
+		}
+		console.log(data);
+
+		$("#bingoData").val(JSON.stringify(data));
+	}
+</script>
+<body>
+	<nav style="height:5vh;background-color:#40739e;display:flex;justify-content:space-between" class="navbar navbar-expand-md navbar-dark">
+		<a class="navbar-brand" href="/bingo">Webgeardam - Bingo Edit [{{bingo["name"]}}]</a>
+	</nav>
+	<h3>Objectives</h3>
+	{%- for level in range(1, 6) %}
+		<table id="table_{{level}}" class="table table-bordered">
+			<thead>
+				<tr>
+					<th colspan="2">Level {{level}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{%- for i in range(0, bingo["objectives"][level|string]|length) %}
+					<tr id="{{level}}_{{i}}">
+						<td><input type="text" class="objective form-control" value='{{bingo["objectives"][level|string][i]}}'></td>
+						<td>
+							<button class="btn btn-sm btn-danger" onClick="deleteRow('{{level}}_{{i}}')">Delete</button>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+		<div style="text-align:center;margin-bottom:5px"><button class="btn btn-sm btn-success" onclick='addRow("{{level}}")'>Add</button></div>
+	{% endfor %}
+
+	<h3>Variables</h3>
+	<div id="variablesList">
+		{% set nbVariable = namespace(value=0) -%}
+		{%- for name, values in bingo["variables"].items() %}
+			{% set nbVariable.value = nbVariable.value + 1-%}
+			<table id="table_variables_{{nbVariable.value}}" class="table table-bordered">
+				<thead>
+					<tr>
+						<th colspan="2"><input id="name" type="text" class="form-control" value="{{name}}"></th>
+					</tr>
+				</thead>
+				<tbody>
+					{%- for i in range(0, values|length) %}
+						<tr id='{{nbVariable.value}}_{{i}}'>
+							<td><input class="variable form-control" type="text" value="{{values[i]}}"></td>
+							<td>
+								<button class="btn btn-sm btn-danger" onClick="deleteRow('{{nbVariable.value}}_{{i}}')">Delete</button>
+							</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+			<div style="text-align:center;margin-bottom:5px"><button class="btn btn-sm btn-success" onclick='addRowVariable("{{nbVariable.value}}")'>Add</button></div>
+		{% endfor %}
+	</div>
+	<button class="btn btn-sm btn-success" onclick='addVariable()'>Add Variable</button>
+	<hr />
+	<div class="form-inline">
+		<form method="get">
+			<input id="bingoData" type="hidden" name="bingoUpdated" value="">
+			<input type="text" name="authKey" class="form-control" placeholder="AuthKey" required>
+			<button name="action" value="EDIT" class="btn btn-sm btn-success" onclick='save("{{bingo["name"]}}")'>Save</button>
+		</form>
+	</div>
+</body>

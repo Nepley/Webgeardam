@@ -15,6 +15,10 @@ A Dockerfile is provided.
 
 The [SyncPlayer](https://github.com/Nepley/SyncPlayer) is include in the Webgeardam
 
+## Bingo
+
+The Webgeardam can manage Bingo (as in speedrun), and make room for player to play
+
 ## Nepgeadam Management
 
 The Webgeardam will be able to manage different part of the [Nepgeardam](https://github.com/Nepley/Nepgeardam) (WIP)

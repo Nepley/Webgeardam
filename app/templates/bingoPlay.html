@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<script src="https://cdn.socket.io/4.4.1/socket.io.min.js" integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H" crossorigin="anonymous"></script>
+	<script src="{{ url_for('static', path='/js/bingo.js') }}"></script>
+</head>
+<style>
+	#bingoGrid
+	{
+		display: flex;
+		flex-wrap: wrap;
+		border: 1px solid;
+		height: 95%;
+		aspect-ratio: 1;
+	}
+
+	.cell
+	{
+		position: relative;
+		flex-basis: calc(20%);
+		box-sizing: border-box;
+		text-align: center;
+		aspect-ratio: 1;
+	}
+
+	.cell .content
+	{
+		display: flex; 
+		align-items:center;
+		justify-content:center;
+		height: 100%;
+		width: 100%;
+	}
+
+	.cell_not_right
+	{
+		border-right: solid black 1px;
+	}
+
+	.cell_not_bottom
+	{
+		border-bottom: solid black 1px;
+	}
+
+	#changeGridButton
+	{
+		position: absolute;
+		top: 95%;
+		left: 5px;
+	}
+
+	#PlayerList
+	{
+		width:100%;
+	}
+
+	#PlayerList tbody tr td
+	{
+		display: flex;
+		justify-content: space-between;
+	}
+</style>
+<script>
+	let PlayerList = [];
+	let name = "";
+	let color = "";
+
+	bingoSync = new bingoSync("{{bingo}}", "{{role}}", "{{code}}");
+	$(document).ready(function()
+	{
+		if(bingoSync.getRole() == "PLAYER")
+		{
+			// We retrieve the player list if we are not the host
+			bingoSync.getSocket().emit('bingo', { room: bingoSync.getCode(), action:"ASK_SYNC"});
+		}
+		// We display the form for the name and the color
+		$('#modalName').modal({backdrop: 'static', keyboard: false});
+
+		$("#code").html(bingoSync.getCode());
+
+		bingoSync.getSocket().on('bingo', function (data)
+		{
+			console.log(data);
+			switch(data['action'])
+			{
+				case "GENERATE":
+					bingoSync.setGrid(data["bingo"]);
+					drawBingo(bingoSync.getGrid());
+					break;
+				case "ADD_PLAYER":
+					PlayerList.push({name: data["name"], color: data["color"]});
+					updatePlayerList();
+					break;
+				case "DELETE_PLAYER":
+					// We remove the player
+					PlayerList.splice(PlayerList.indexOf({name: data["name"], color: data["color"]}), 1);
+
+					// We update the playerlist
+					updatePlayerList();
+
+					// We remove the color from the grid
+					if(bingoSync.getGrid() != "")
+					{
+						bingoSync.deleteColorAll(data["color"]);
+						drawBingo(bingoSync.getGrid());
+					}
+					break;
+				case "ASK_SYNC":
+					if(bingoSync.getRole() == "HOST")
+					{
+						// We send the player list and the bingo grid
+						bingoSync.getSocket().emit('bingo', { room: bingoSync.getCode(), action:"SYNC", playerList: PlayerList, bingoGrid: bingoSync.getGrid()});
+					}
+					break;
+				case "SYNC":
+					PlayerList = data["playerList"];
+					updatePlayerList();
+					bingoSync.setGrid(data["bingoGrid"], true);
+					drawBingo(bingoSync.getGrid());
+					break;
+				case "ADD_COLOR":
+					bingoSync.addColor(data["color"], data["x"], data["y"]);
+					drawBingo(bingoSync.getGrid());
+					break;
+				case "REMOVE_COLOR":
+					bingoSync.deleteColor(data["color"], data["x"], data["y"]);
+					drawBingo(bingoSync.getGrid());
+					break;
+			}
+		});
+
+		$("#start_btn").click(function()
+		{
+			name = $("#playerName").val();
+			color = $("#playerColor").val();
+			bingoSync.getSocket().emit('bingo', { room: bingoSync.getCode(), action:"ADD_PLAYER", name: name, color: color });
+			$("#modalName").modal('hide');
+		});
+	});
+
+	function generate()
+	{
+		bingoSync.getSocket().emit('bingo', { room: bingoSync.getCode(), action:"GENERATE", bingo: bingoSync.getBingo() });
+	}
+
+	function drawBingo(bingo)
+	{
+		// We build the table
+		html = '<div id="bingoGrid">';
+		for(let i = 0; i < 5; i++)
+		{
+			for(let j = 0; j < 5; j++)
+			{
+				let style = makeCss(bingo[i][j]['colors']);
+				let classCell = "cell";
+				if(i != 4)
+				{
+					classCell += " cell_not_bottom";
+				}
+				if(j != 4)
+				{
+					classCell += " cell_not_right";
+				}
+
+				html += '<div class="'+classCell+'" id="case_'+i+'_'+j+'" '+style+'>';
+				html += '<div class="content">'+bingo[i][j]['objective']+'</div>';
+				html += '</div>';
+			}
+		}
+		html += '</div>';
+
+		if(bingoSync.getRole() == "HOST")
+		{
+			html += '<button id="changeGridButton" class="btn btn-sm btn-info" onclick="generate()">Change Grid</button>';
+		}
+
+		$("#grid").html(html);
+
+		// We add the listener for click
+		$("#bingoGrid div").on("click", function()
+		{
+			const idElement = $(this).attr('id');
+
+			if(idElement != undefined)
+			{
+				const coord = idElement.split("_");
+				let action = "ADD_COLOR";
+				if(bingoSync.colorExist(color, coord[1], coord[2]))
+				{
+					action = "REMOVE_COLOR";
+				}
+				bingoSync.getSocket().emit('bingo', { room: bingoSync.getCode(), action: action, color: color, x: coord[1], y: coord[2]});
+			}
+		});
+	}
+
+	function updatePlayerList()
+	{
+		html = '<table class="table table-bordered align-middle">';
+		html += '<thead><tr>';
+			html += '<th>Player List</th>'
+		html += '</tr></thead>';
+		for(let i = 0; i < PlayerList.length; i++)
+		{
+			html += '<tr>';
+				html += '<td style="color:'+PlayerList[i]["color"]+'">';
+					html += PlayerList[i]["name"];
+					if(bingoSync.getRole() == "HOST")
+					{
+						html += '<button class="btn btn-sm btn-danger" onclick=\'deletePlayer("'+PlayerList[i]["name"]+'", "'+PlayerList[i]["color"]+'")\'>Remove</button>';
+					}
+				html += '</td>';
+			html += '</tr>';
+		}
+		html += '</table>';
+
+		$("#PlayerList").html(html);
+	}
+
+	function makeCss(colors)
+	{
+		let nbColor = colors.length;
+
+		let style = 'style="';
+		if(nbColor > 0)
+		{
+			let widthColor = 100/nbColor;
+			let pos = 0;
+			style += 'background: linear-gradient(45deg, ';
+			for(let i = 0; i < colors.length; i++)
+			{
+				posString = "";
+				
+				posString += pos+"%";
+				pos += widthColor;
+				posString += " "+pos+"%";
+
+				style += colors[i]+" "+posString;
+
+				if(i < colors.length-1)
+				{
+					style += ", ";
+				}
+			}
+			style += ');color:white';
+		}
+		style += '"';
+
+		return style;
+	}
+
+	function deletePlayer(name, color)
+	{
+		bingoSync.getSocket().emit('bingo', { room: bingoSync.getCode(), action:"DELETE_PLAYER", name: name, color: color });
+	}
+</script>
+
+<body>
+	<nav style="height:5vh;background-color:#40739e;display:flex;justify-content:space-between" class="navbar navbar-expand-md navbar-dark">
+		<a class="navbar-brand" href="/bingo">Webgeardam - Bingo {{bingo}}</a>
+		<div style="color:white">Code: <span id="code"></span></div>
+	</nav>
+	<div style="display: flex;">
+		<div id="grid" style="width: 80%; display: flex; height: 95vh; justify-content: center; align-items:center;">
+			{% if role == "HOST" %}
+				<button class="btn btn-sm btn-info" id="displayGridButton" onclick="generate()" style="height: 40px;">Display Grid</button>
+			{% endif %}
+		</div>
+		<div id="Infos" style="width: 20%">
+			<div id="PlayerList">
+				<table class="table table-bordered align-middle">
+					<thead>
+						<tr>
+							<th>Player List</th>
+						</tr>
+					</thead>
+				</table>
+			</div>
+		</div>
+	</div>
+	<!-- Name Modal -->
+	<div class="modal fade" id="modalName" tabindex="-1" role="dialog" aria-labelledby="modalName" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Choose a name and a color</h5>
+				  </div>
+				<div class="modal-body form-inline" style="display:flex;justify-content:center">
+					<input class="form-control" type="text" id="playerName" name="playerName" style="margin-right:10px;">
+					<input class="form-control" type="color" id="playerColor" name="playerColor" style="margin-right:10px;">
+					<button class="btn btn-sm btn-success" id="start_btn">Start</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>

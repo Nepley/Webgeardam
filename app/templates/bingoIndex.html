@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<script>
+	$( document ).ready(function() {
+		$("#bingoListRoomEdit").change(function(){
+			$("#edit_url").attr("href", "/bingo/edit/"+$(this).val());
+		});
+
+		$("#addBingoName").change(function(){
+			$("#formAdd").attr("action", "/bingo/edit/"+$(this).val());
+		});
+	});
+</script>
+<body>
+	<nav style="height:5vh;background-color:#40739e;display:flex;justify-content:space-between" class="navbar navbar-expand-md navbar-dark">
+		<a class="navbar-brand" href="/">Webgeardam - Bingo</a>
+	</nav>
+	<div style="display:flex;justify-content:space-evenly;margin-top:5px;">
+		<div class="card" style="width: 25rem;">
+			<form method="GET" action="/bingo/play">
+				<div class="card-body">
+					<h5 class="card-title">Create a room</h5>
+					<select class="form-control" name="bingo" id="bingoListRoomCreate">
+						<option value="">- Bingo List -</option>
+						{%- for bingo in bingoList %}
+							<option value='{{ bingo["name"] }}'>{{ bingo["name"] }}</option>
+						{% endfor %}
+					</select>
+					<div style="text-align:center;margin-top:10px">
+						<button name="action" value="HOST" class="btn btn-sm btn-info">Create Room</button>
+					</div>
+				</div>
+			</form>
+		</div>
+		<div class="card" style="width: 25rem;">
+			<form method="GET" action="/bingo/play">
+				<div class="card-body">
+					<h5 class="card-title">Join a room</h5>
+					<input class="form-control" name="code" id="roomCode" type="text" placeholder="Room Code">
+					<div style="text-align:center;margin-top:10px">
+						<button name="action" value="JOIN" class="btn btn-sm btn-info">Join Room</button>
+					</div>
+				</div>
+			</form>
+		</div>
+		<div class="card" style="width: 25rem;">
+			<div class="card-body">
+				<h5 class="card-title">Manage bingo</h5>
+				<div style="text-align:center;margin-top:40px">
+					<button class="btn btn-success" data-toggle="modal" data-target="#AddBingo">Add Bingo</button>
+					<button class="btn btn-primary" data-toggle="modal" data-target="#Edit">Edit Bingo</button>
+					<!-- Modals -->
+					<div class="modal fade" id="Edit" tabindex="-1" role="dialog" aria-labelledby="EditLabel" aria-hidden="true">
+						<div class="modal-dialog modal-dialog-centered" role="document">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h5 class="modal-title">Choose a bingo to edit</h5>
+								</div>
+								<div class="modal-body">
+									<select class="form-control" name="bingo" id="bingoListRoomEdit">
+										<option value="">- Bingo List -</option>
+										{%- for bingo in bingoList %}
+											<option value='{{ bingo["name"] }}'>{{ bingo["name"] }}</option>
+										{% endfor %}
+									</select>
+									<a href="/bingo/edit" id="edit_url" class="card-link">Edit Bingo</a>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="modal fade" id="AddBingo" tabindex="-1" role="dialog" aria-labelledby="AddBingoLabel" aria-hidden="true">
+						<div class="modal-dialog modal-dialog-centered" role="document">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h5 class="modal-title">Adding a bingo</h5>
+								</div>
+								<div class="modal-body">
+									<form id="formAdd" action="/bingo/edit">
+										<div class="form-inline" style="display: flex; justify-content: space-between">
+											<input id="addBingoName" class="form-control" type="text" name="bingo" placeholder="Bingo Name">
+											<input class="form-control" type="text" name="authKey" placeholder="Auth Key">
+										</div>
+										<input type="hidden" name="action" value="ADD">
+										<button style="margin-top: 5px;" class="btn btn-sm btn-success" type="submit" href="/bingo/edit" class="card-link">Add Bingo</button>
+									</form>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
